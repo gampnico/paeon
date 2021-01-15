@@ -127,3 +127,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Files and dir
+scratchpad.ipynb
+data/
