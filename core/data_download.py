@@ -10,6 +10,7 @@ import urllib.request
 import datetime
 import os
 import zipfile
+import pathlib
 
 
 def progress_bar(packet_number, packet_size, total_size):
@@ -77,23 +78,23 @@ def download_database(server_path, client_path):
 
 
 def determine_timestamp(client_database, server_path):
-    """Establishes connection with GeoNames server and returns server and
-    client database modification dates. Called by verify_update() if an update
-    check is initiated.
+    """Establishes connection with server and returns server and
+    client database modification dates. Can be called by a verify_update()
+    if an update check is initiated.
 
     Author:
         Nicolas Gampierakis
 
     Args:
-       client_database (pathlib.PurePath): the file path to the client's database
+       client_database (pathlib.PurePath): the file path to the client's
+        database
         server_path (str): the url path to the server database
 
-    Returns
-    -------
-    client_timestamp : datetime
-        the last modification date of the client database file
-    server_timestamp : datetime
-        the last modification date of the server database file
+    Returns:
+        client_timestamp (datetime): the last modification date of the
+            client database file
+        server_timestamp (datetime): the last modification date of the
+            server database file
     """
 
     connection = urllib.request.urlopen(server_path, timeout=20)
@@ -111,10 +112,99 @@ def determine_timestamp(client_database, server_path):
     return client_timestamp, server_timestamp
 
 
-def download_pipeline(country="austria", data_path="../data/"):
-    if country == "austria":
-        dl_path = data_path + "austria/"
-        download_database(
-            server_path="https://covid19-dashboard.ages.at/data/data.zip",
-            client_path=dl_path,
+def verify_update():
+    """Enforces python version is greater than 3.5, sets up client directory
+    paths. Checks existence, version, and implementation of client database.
+    Calls determine_timestamp() to read and compare the header information of
+    server database and client modification date. Calls download_database()
+    if a database update is requested by user.
+
+    Raises:
+        Exception: If Python version is less than 3.5.
+        URLError: If errors occur in the connection to the URL path.
+        socket.timeout: If the socket timeout defined in download_database()
+            occurs during a connection loss.
+    """
+
+    # Check and enforce Python version is greater than 3.5
+    if sys.version_info.major < 3 or sys.version_info.minor < 5:
+        raise Exception(
+            "Python 3.5 or greater is required to run the update " "package"
         )
+
+    # Checks existence of and sets up client directories - pathlib is ~10x
+    # slower than os.path, but more robust and elegant when dealing with
+    # relative path names.
+    root = os.path.dirname(os.getcwd())
+    client_path = pathlib.PurePath(root).joinpath("data/austria")
+    server_path = "https://covid19-dashboard.ages.at/data/data.zip"
+    pathlib.Path(client_path).mkdir(exist_ok=True)
+    client_zip = client_path / "data.zip"
+    client_path = str(client_path) + "/"
+    print("\nData provided by AGES.")
+    # Checks if database exists. If not, checks if archive exists. Downloads
+    # and extracts database if and where appropriate.
+    while True:
+        try:
+            # Check for extracted database.
+            if not pathlib.Path(client_zip).is_file():
+                if input(
+                    "AGES database is missing. Would you like to "
+                    "download and extract city data?\n(y/n):\n"
+                ) in ["y", "Y", "Yes", "yes"]:
+                    # Check for archive.
+                    print(server_path)
+                    print(client_zip)
+                    print(client_path)
+                    if not pathlib.Path(client_zip).is_file():
+                        download_database(server_path, client_path)
+                    else:
+                        # Extract pre-existing archive.
+                        print(
+                            "The AGES database was already downloaded. " "Unzipping..."
+                        )
+                        with zipfile.ZipFile(client_zip, "r") as zip_ref:
+                            zip_ref.extractall(client_path)
+                        print("Successfully extracted the city database.")
+                    break
+                else:
+                    print("Operation cancelled.")
+                    break
+            else:
+                # Application layer.
+                print("AGES database already exists. Checking for update...")
+                # For readability, relegated this to determine_timestamp().
+                client_timestamp, server_timestamp = determine_timestamp(
+                    client_zip, server_path
+                )
+
+                # Equality test of database modification date between server
+                # and client.
+                if server_timestamp.date() != client_timestamp.date():
+                    print("\nDownloading...")
+                    download_database(server_path, str(client_zip))
+                    break
+                else:
+                    print("The AGES database is up-to-date.")
+                    break
+        # Transport layer
+        except socket.timeout:
+            # Handles and warns against connection drop and interruptions.
+            print(
+                "\nSocket timeout. Please check your Internet connection "
+                "and try again."
+            )
+            break
+        except urllib.error.URLError as connection_error:
+            # Handles and warns against unresolvable connection issues.
+            response_url_error = (
+                "\nFile not downloaded because: "
+                + str(connection_error.reason)
+                + ". Please check your connection "
+                "and try again."
+            )
+            print(response_url_error)
+        finally:
+            # Clean up any temporary files. Connection:Close already included.
+            urllib.request.urlcleanup()
+            break
