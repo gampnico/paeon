@@ -131,3 +131,4 @@ dmypy.json
 # Files and dir
 scratchpad.ipynb
 data/
+jupyter.sh

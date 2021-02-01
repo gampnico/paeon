@@ -1,6 +1,6 @@
 # Paeon
 
-A rudimentary framework for analysing COVID data in Austria.
+A rudimentary framework for analysing COVID data for Austria.
 
 This aims to provide a more interactive approach than the [AGES Dashboard]("https://covid19-dashboard.ages.at/"), by allowing the user to compare regional trends and selected time periods, rather than just a national snapshot.
 

@@ -51,11 +51,30 @@ def progress_bar(packet_number, packet_size, total_size):
     sys.stdout.flush()
 
 
-def download_database(server_path, client_path):
-    """Downloads and extracts database into client directory.
+def extract_database(client_path):
+    """Extracts database into client directory.
+    
+    Author:
+        Nicolas Gampierakis
 
     Args:
-        client_path (pathlib.PurePath): the file path to the client's
+        client_path (pathlib.PurePath): the directory path to the client's
+        downloaded database
+    """
+    file_path = client_path + "data.zip"
+    with zipfile.ZipFile(file_path, "r") as zip_ref:
+        zip_ref.extractall(client_path)
+    print("\nSuccessfully unzipped and installed database.")
+
+
+def download_database(server_path, client_path):
+    """Downloads and extracts database into client directory.
+    
+    Author:
+        Nicolas Gampierakis
+
+    Args:
+        client_path (pathlib.PurePath): the directory path to the client's
         downloaded database
         server_path (str): the url path to the server database
     """
@@ -70,9 +89,8 @@ def download_database(server_path, client_path):
     socket.setdefaulttimeout(10)
     data = urllib.request.urlretrieve(server_path, file_path, reporthook=progress_bar)
     print("\nDatabase successfully downloaded.")
-    with zipfile.ZipFile(file_path, "r") as zip_ref:
-        zip_ref.extractall(client_path)
-    print("\nSuccessfully unzipped and installed database.")
+
+    extract_database(client_path)
 
     return data
 
@@ -118,6 +136,9 @@ def verify_update():
     Calls determine_timestamp() to read and compare the header information of
     server database and client modification date. Calls download_database()
     if a database update is requested by user.
+    
+    Author:
+        Nicolas Gampierakis
 
     Raises:
         Exception: If Python version is less than 3.5.
@@ -150,7 +171,7 @@ def verify_update():
             if not pathlib.Path(client_zip).is_file():
                 if input(
                     "AGES database is missing. Would you like to "
-                    "download and extract city data?\n(y/n):\n"
+                    "download and extract data?\n(y/n):\n"
                 ) in ["y", "Y", "Yes", "yes"]:
                     # Check for archive.
                     print(server_path)
@@ -165,14 +186,14 @@ def verify_update():
                         )
                         with zipfile.ZipFile(client_zip, "r") as zip_ref:
                             zip_ref.extractall(client_path)
-                        print("Successfully extracted the city database.")
+                        print("Successfully extracted the database.")
                     break
                 else:
                     print("Operation cancelled.")
                     break
             else:
                 # Application layer.
-                print("AGES database already exists. Checking for update...")
+                print("AGES database already exists locally. Checking for update...")
                 # For readability, relegated this to determine_timestamp().
                 client_timestamp, server_timestamp = determine_timestamp(
                     client_zip, server_path
@@ -182,9 +203,10 @@ def verify_update():
                 # and client.
                 if server_timestamp.date() != client_timestamp.date():
                     print("\nDownloading...")
-                    download_database(server_path, str(client_zip))
+                    download_database(server_path, str(client_path))
                     break
                 else:
+                    extract_database(client_path)
                     print("The AGES database is up-to-date.")
                     break
         # Transport layer
@@ -198,7 +220,7 @@ def verify_update():
         except urllib.error.URLError as connection_error:
             # Handles and warns against unresolvable connection issues.
             response_url_error = (
-                "\nFile not downloaded because: "
+                "\nFile not downloaded because:\n"
                 + str(connection_error.reason)
                 + ". Please check your connection "
                 "and try again."
