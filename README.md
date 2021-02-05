@@ -1,14 +1,12 @@
 # Paeon
 
-A rudimentary framework for analysing COVID data for Austria.
+A rudimentary, trend-driven framework for analysing COVID-19 trends in Austria.
 
-This aims to provide a more interactive approach than the [AGES Dashboard]("https://covid19-dashboard.ages.at/"), by allowing the user to compare regional trends and selected time periods, rather than just a national snapshot.
-
-**04.02.2021: AGES appear to have updated their database format. `data_parser()` and `data_plot()` no longer work. A compatibility fix will be issued shortly.**
+This aims to provide a more trend-driven approach than the [AGES Dashboard]("https://covid19-dashboard.ages.at/"), by allowing the user to compare state and district trends for selected time periods, rather than a static, national snapshot.
 
 ## Usage
 
-The attached jupyter notebook contains examples of how to use in-built functions.
+The jupyter notebook in the `notebooks/` folder contains in-depth instructions and examples on how to use this framework. 
 
 To download and update AGES data, use the `verify_update()` function in `core/data_download.py`. This function will only download data if an update is available.
 
@@ -17,3 +15,4 @@ To download and update AGES data, use the `verify_update()` function in `core/da
 * pandas
 * numpy
 * matplotlib
+* jupyter-notebook -- but only to access the notebook.

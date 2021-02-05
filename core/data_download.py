@@ -87,6 +87,7 @@ def download_database(server_path, client_path):
     file_path = client_path + "data.zip"
     print(file_path)
     socket.setdefaulttimeout(10)
+    time.sleep(1)  # To avoid server overload
     data = urllib.request.urlretrieve(server_path, file_path, reporthook=progress_bar)
     print("\nDatabase successfully downloaded.")
 
