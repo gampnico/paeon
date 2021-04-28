@@ -8,7 +8,7 @@ import numpy as np
 
 def setup_datasets():
     """Parses downloaded AGES datasets.
-    
+
     Returns:
         collated (dict): dictionary of parsed .csv files.
     """
@@ -70,3 +70,39 @@ def setup_datasets():
 
     return collated
 
+
+def setup_vaccination_data(path="./data/europe/data.csv"):
+    """Parses downloaded ECDC vaccination datasets, adjusts datetime format.
+
+    Args:
+        path (str): path to csv file
+
+    Returns:
+        df (pandas.DataFrame): formatted ECDC dataset.
+    """
+
+    df = pd.read_csv(path, sep=",", index_col=0,)
+    df.index = pd.to_datetime(df.index + "-1", format="%G-W%V-%u")
+
+    return df
+
+
+def vaccine_region(df, region="LU"):
+    include_list = [
+        "FirstDose",
+        "FirstDoseRefused",
+        "SecondDose",
+        "UnknownDose",
+        "NumberDosesReceived",
+    ]
+    df_region = df[(df["Region"] == region) & (df["TargetGroup"] == "ALL")]
+    df_region_sum = (
+        df_region.loc[:, df_region.columns.isin(include_list)].resample("W").sum()
+    )
+    df_region_sum = pd.DataFrame.join(
+        df_region_sum,
+        (df_region.loc[:, ~df_region.columns.isin(include_list)].resample("W").last()),
+    )
+    df_region_sum["FirstCumSum"] = df_region_sum["FirstDose"].cumsum()
+    df_region_sum["SecondCumSum"] = df_region_sum["SecondDose"].cumsum()
+    return df_region_sum, region

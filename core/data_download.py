@@ -59,7 +59,7 @@ def extract_database(client_path):
 
     Args:
         client_path (pathlib.PurePath): the directory path to the client's
-        downloaded database
+            downloaded database
     """
     file_path = client_path + "data.zip"
     with zipfile.ZipFile(file_path, "r") as zip_ref:
@@ -67,7 +67,7 @@ def extract_database(client_path):
     print("\nSuccessfully unzipped and installed database.")
 
 
-def download_database(server_path, client_path):
+def download_database(server_path, client_path, provider="AGES"):
     """Downloads and extracts database into client directory.
     
     Author:
@@ -75,8 +75,11 @@ def download_database(server_path, client_path):
 
     Args:
         client_path (pathlib.PurePath): the directory path to the client's
-        downloaded database
+            downloaded database
         server_path (str): the url path to the server database
+        provider (str): name of dataset provider. Currently AGES and ECDC 
+            are supported
+
     """
 
     # Timeout value recommended by NN/g before user loses attention
@@ -84,14 +87,18 @@ def download_database(server_path, client_path):
         raise Exception(
             "Python 3.5 or greater is required to run the update " "package"
         )
-    file_path = client_path + "data.zip"
+    if provider == "AGES":
+        file_path = client_path + "data.zip"
+    elif provider == "ECDC":
+        file_path = client_path + "data.csv"
+
     print(file_path)
     socket.setdefaulttimeout(10)
     time.sleep(1)  # To avoid server overload
     data = urllib.request.urlretrieve(server_path, file_path, reporthook=progress_bar)
     print("\nDatabase successfully downloaded.")
-
-    extract_database(client_path)
+    if provider == "AGES":
+        extract_database(client_path)
 
     return data
 
@@ -105,8 +112,8 @@ def determine_timestamp(client_database, server_path):
         Nicolas Gampierakis
 
     Args:
-       client_database (pathlib.PurePath): the file path to the client's
-        database
+        client_database (pathlib.PurePath): the file path to the client's
+            database
         server_path (str): the url path to the server database
 
     Returns:
@@ -131,7 +138,7 @@ def determine_timestamp(client_database, server_path):
     return client_timestamp, server_timestamp
 
 
-def verify_update():
+def verify_update(provider="AGES"):
     """Enforces python version is greater than 3.5, sets up client directory
     paths. Checks existence, version, and implementation of client database.
     Calls determine_timestamp() to read and compare the header information of
@@ -140,6 +147,10 @@ def verify_update():
     
     Author:
         Nicolas Gampierakis
+    
+    Args:
+        provider (str): name of dataset provider. Currently AGES and ECDC 
+            are supported.
 
     Raises:
         Exception: If Python version is less than 3.5.
@@ -158,12 +169,22 @@ def verify_update():
     # slower than os.path, but more robust and elegant when dealing with
     # relative path names.
     root = os.path.dirname(os.getcwd())
-    client_path = pathlib.PurePath(root).joinpath("data/austria")
-    server_path = "https://covid19-dashboard.ages.at/data/data.zip"
-    pathlib.Path(client_path).mkdir(exist_ok=True)
-    client_zip = client_path / "data.zip"
+    if provider == "AGES":
+        client_path = pathlib.PurePath(root).joinpath("data/austria")
+        server_path = "https://covid19-dashboard.ages.at/data/data.zip"
+        print("\nData provided by AGES.")
+        pathlib.Path(client_path).mkdir(exist_ok=True)
+        client_zip = client_path / "data.zip"
+    elif provider == "ECDC":
+        client_path = pathlib.PurePath(root).joinpath("data/europe")
+        server_path = (
+            "https://opendata.ecdc.europa.eu/covid19/vaccine_tracker/csv/data.csv"
+        )
+        print("\nData provided by ECDC.")
+        pathlib.Path(client_path).mkdir(exist_ok=True)
+        client_zip = client_path / "data.csv"
     client_path = str(client_path) + "/"
-    print("\nData provided by AGES.")
+
     # Checks if database exists. If not, checks if archive exists. Downloads
     # and extracts database if and where appropriate.
     while True:
@@ -171,7 +192,7 @@ def verify_update():
             # Check for extracted database.
             if not pathlib.Path(client_zip).is_file():
                 if input(
-                    "AGES database is missing. Would you like to "
+                    "Database is missing. Would you like to "
                     "download and extract data?\n(y/n):\n"
                 ) in ["y", "Y", "Yes", "yes"]:
                     # Check for archive.
@@ -179,22 +200,22 @@ def verify_update():
                     print(client_zip)
                     print(client_path)
                     if not pathlib.Path(client_zip).is_file():
-                        download_database(server_path, client_path)
+                        download_database(server_path, client_path, provider)
                     else:
                         # Extract pre-existing archive.
-                        print(
-                            "The AGES database was already downloaded. " "Unzipping..."
-                        )
-                        with zipfile.ZipFile(client_zip, "r") as zip_ref:
-                            zip_ref.extractall(client_path)
-                        print("Successfully extracted the database.")
+                        print("The database was already downloaded.")
+                        if provider == "AGES":
+                            print("Unzipping...")
+                            with zipfile.ZipFile(client_zip, "r") as zip_ref:
+                                zip_ref.extractall(client_path)
+                            print("Successfully extracted the database.")
                     break
                 else:
                     print("Operation cancelled.")
                     break
             else:
                 # Application layer.
-                print("AGES database already exists locally. Checking for update...")
+                print("Database already exists locally. Checking for update...")
                 # For readability, relegated this to determine_timestamp().
                 client_timestamp, server_timestamp = determine_timestamp(
                     client_zip, server_path
@@ -204,11 +225,12 @@ def verify_update():
                 # and client.
                 if server_timestamp.date() != client_timestamp.date():
                     print("\nDownloading...")
-                    download_database(server_path, str(client_path))
+                    download_database(server_path, str(client_path), provider)
                     break
                 else:
-                    extract_database(client_path)
-                    print("The AGES database is up-to-date.")
+                    if provider == "AGES":
+                        extract_database(client_path)
+                    print("The database is up-to-date.")
                     break
         # Transport layer
         except socket.timeout:

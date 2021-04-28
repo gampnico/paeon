@@ -5,6 +5,7 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 import string
+import utilities as ut
 
 
 def district_seven_day_incidence(
@@ -218,7 +219,7 @@ def plot_icu_incidence(data_dict, time_start=0, time_end=-1):
 
     Args:
         data_dict (dict): collated parsed datasets from
-            data_parser.setup_datasets().
+            ``data_parser.setup_datasets()``.
         time_start (int): the index from which to start plotting data.
         time_end (int): the index from which to end plotting data.
     """
@@ -265,10 +266,9 @@ def plot_icu_percentages(data_dict, time_start=0, time_end=-1):
 
     Args:
         data_dict (dict): collated parsed datasets from
-            data_parser.setup_datasets().
+            ``data_parser.setup_datasets()``.
         time_start (int): the index from which to start plotting data.
         time_end (int): the index from which to end plotting data.
-
     """
 
     plt.plot(
@@ -299,3 +299,78 @@ def plot_icu_percentages(data_dict, time_start=0, time_end=-1):
     plt.ylabel("Percent [%]")
     plt.legend()
     plt.show()
+
+
+def plot_percentage_vaccinated(data_tuple, poly_degree=1):
+    """Plots first and second doses administered as a percentage of total
+    vaccine-eligible population.
+    
+    Author:
+        Nicolas Gampierakis
+    
+    Args:
+        data_tuple (tuple): formatted ECDC dataset from
+            ``data_parser.vaccine_region()``.
+        poly_degree (int): degree of fitted polynomial.
+
+    """
+
+    df = data_tuple[0]
+    plt.plot(
+        df["FirstCumSum"] / df["Denominator"] * 100, color="black", label="First Dose"
+    )
+    plt.plot(
+        df["SecondCumSum"] / df["Denominator"] * 100, color="red", label="Second Dose"
+    )
+    plt.legend()
+
+    for frame in [
+        df["FirstCumSum"] / df["Denominator"] * 100,
+        df["SecondCumSum"] / df["Denominator"] * 100,
+    ]:
+        y_hat = ut.line_of_best_fit(df, frame, poly_degree)
+        plt.plot(df.index, y_hat, color="gray", linestyle="--", linewidth=2)
+    plt.xlabel("Week")
+    plt.ylabel("Percentage Vaccinated [%]")
+    plt.title("Percentage of Population Vaccinated, " + data_tuple[1])
+    plt.show()
+
+    print(
+        "Percentage Vaccinated:\nFirst Dose: %.3f%%\nSecond Dose: %.3f%%"
+        % (
+            (df["FirstCumSum"][-1] / df["Denominator"][-1] * 100),
+            (df["SecondCumSum"][-1] / df["Denominator"][-1] * 100),
+        )
+    )
+
+
+def plot_doses_administered(data_tuple, poly_degree=1):
+    """Plots first and second doses administered as an absolute number.
+    
+    Author:
+        Nicolas Gampierakis
+    
+    Args:
+        data_tuple (tuple): formatted ECDC dataset from
+            ``data_parser.vaccine_region()``.
+        poly_degree (int): degree of fitted polynomial.
+    """
+
+    df = data_tuple[0]
+    plt.plot(df.index, df["FirstDose"], color="black", linewidth=2, label="First Dose")
+    plt.plot(df.index, df["SecondDose"], color="red", linewidth=2, label="Second Dose")
+    plt.legend()
+    plt.xlabel("Week")
+    plt.ylabel("Doses")
+    plt.title("Number of Doses Administered, " + data_tuple[1])
+
+    for frame in [df["FirstDose"], df["SecondDose"]]:
+        y_hat = ut.line_of_best_fit(df, frame, poly_degree)
+        plt.plot(df.index, y_hat, color="gray", linestyle="--", linewidth=2)
+    plt.show()
+
+    print(
+        "Total doses administered:\nFirst Dose: %.0f%%\nSecond Dose: %.0f%%"
+        % ((df["FirstCumSum"][-1]), (df["SecondCumSum"][-1]),)
+    )
+
