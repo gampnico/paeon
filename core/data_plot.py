@@ -370,7 +370,7 @@ def plot_doses_administered(data_tuple, poly_degree=1):
     plt.show()
 
     print(
-        "Total doses administered:\nFirst Dose: %.0f%%\nSecond Dose: %.0f%%"
+        "Total doses administered:\nFirst Dose: %.0f people\nSecond Dose: %.0f people"
         % ((df["FirstCumSum"][-1]), (df["SecondCumSum"][-1]),)
     )
 

@@ -8,7 +8,7 @@ It also allows basic data analysis of ECDC vaccination data, and a **very** rudi
 
 ## Usage
 
-The jupyter notebooks in the `notebooks/` folder contains in-depth instructions and examples on how to use this framework. 
+The jupyter notebooks in the `notebooks/` folder contain in-depth instructions and examples on how to use this framework. 
 
 To download and update AGES and ECDC data, use the `verify_update()` function in `core/data_download.py`. This function will only download data if an update is available.
 
@@ -17,4 +17,4 @@ To download and update AGES and ECDC data, use the `verify_update()` function in
 * pandas
 * numpy
 * matplotlib
-* jupyter-notebook -- but only to access the notebook.
+* jupyter-notebook -- but only to access the notebooks.
